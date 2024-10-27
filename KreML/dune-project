@@ -1,22 +1,22 @@
-(lang dune 3.16)
+(lang dune 3.8)
 
 (cram enable)
 
-(name KreML)
+(name kreml)
 
 (generate_opam_files true)
 
 (source
  (github oveeernight/comp24))
 
-(authors "Roman Pozharskiy")
+(authors "oveeernight")
 
-(maintainers "Roman Pozharskiy")
+(maintainers "oveeernight")
 
-(license LGPL-3.0-or-later)
+(license LGPL-2.1-or-later WITH OCaml-LGPL-linking-exception)
 
 (package
- (name KreML)
+ (name kreml)
  (synopsis "A KreML compiler")
  (version 0.1)
  (depends
@@ -26,7 +26,6 @@
   (ppx_inline_test :with-test)
   ppx_expect
   ppx_show
-  qcheck
   (odoc :with-doc)
   (ocamlformat :build)
   (llvm

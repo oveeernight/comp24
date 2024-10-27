@@ -1,92 +1,65 @@
-(** Copyright 2024-2025, KreML Compiler Commutnity *)
+(** Abstract syntax tree for KreML and helper functions*)
 
-(** SPDX-License-Identifier: LGPL-3.0-or-later *)
 
-type ident = string [@@deriving show]
-type type_id = int [@@deriving show]
-
-type typ =
-  | Typ_int
-  | Typ_bool
-  | Typ_var of type_id
-  | Typ_list of typ
-  | Typ_tuple of typ * typ * typ list
-  | Typ_fun of typ * typ
-  | Typ_unit
-[@@deriving show]
-
-let tfun l r = Typ_fun (l, r)
+(** Represents an identifier of variable or function*)
+type ident = string
 
 type const =
-  | Const_int of int
-  | Const_bool of bool
-  | Const_unit
-[@@deriving show]
+    | Const_int of int (** [Const_int] represents integer constants like 42, 1337 *)
+    | Const_bool of bool (** [Const_bool] represents boolean constants {true, false} *)
+    | Const_string of string (** [Const_string] represents string literals like "42", "John Doe" *)
+
+type binary_op = 
+    | Add | Sub | Mul | Div | Rem
+    | Eq | Ge | Geq | Le | Leq
+    | Cons
+
+type unary_op = Minus | Negate
+
+type op
+
+type typ_constr =
+    | Tconstr_any
+    | Tconstr_int 
+    | Tconstr_bool
+    | Tconstr_string
+    | Tconstr_arrow of typ_constr * typ_constr
 
 type pattern =
-  | Pat_const of const
-  | Pat_var of ident
-  | Pat_cons of pattern * pattern
-  | Pat_nil
-  | Pat_tuple of pattern * pattern * pattern list
-  | Pat_wildcard
-  | Pat_constrained of pattern * typ
-[@@deriving show]
+    | Pat_const of const
+    | Pat_var of ident
+    | Pat_cons of pattern * pattern
+    | Pat_tuple of pattern list
+    | Pat_constraint of typ_constr
+    | Pat_any
 
-let pconst c = Pat_const c
-let pvar v = Pat_var v
-let pcons x xs = Pat_cons (x, xs)
-let pnil = Pat_nil
-let ptuple a b rest = Pat_tuple (a, b, rest)
+type rec_flag = Recursive | NonRecursive
 
-type rec_flag =
-  | Recursive
-  | NonRecursive
-[@@deriving show]
 
 type expr =
-  | Expr_const of const
-  | Expr_var of ident
-  | Expr_cons of expr * expr
-  | Expr_nil
-  | Expr_tuple of expr * expr * expr list
-  | Expr_let of rec_flag * binding * expr
-  | Expr_ite of expr * expr * expr
-  | Expr_fun of pattern * expr
-  | Expr_match of expr * case list
-  | Expr_app of expr * expr
-  | Expr_constrained of expr * typ
-[@@deriving show]
+    | Expr_const of const
+    | Expr_var of ident
+    | Expr_tuple of expr * expr * expr list
+    | Expr_let of rec_flag * binding list * expr
+    | Expr_ite of expr * expr * expr
+    | Expr_fun of expr list * expr
+    | Expr_match of expr * case list
+    | Expr_app of expr * expr list
 
-and binding = pattern * expr [@@deriving show]
-and case = pattern * expr [@@deriving show]
+and binding = pattern * expr
 
-type structure_item = Str_value of rec_flag * binding list [@@deriving show]
-type structure = structure_item list [@@deriving show]
+and case = pattern * expr
 
-let eapp func args =
-  Base.List.fold_left args ~init:func ~f:(fun acc arg -> Expr_app (acc, arg))
-;;
+let eapp f args = Expr_app(f, args)
 
-let econs x y = Expr_cons (x, y)
-let enil = Expr_nil
-let etuple fst snd rest = Expr_tuple (fst, snd, rest)
-let eite c e t = Expr_ite (c, e, t)
-let efun p body = Expr_fun (p, body)
-
-let elet ?(rec_flag = NonRecursive) (pattern, binding) where =
-  Expr_let (rec_flag, (pattern, binding), where)
-;;
-
-let ematch expr bindings = Expr_match (expr, bindings)
-let eland x y = eapp (Expr_var "&&") [ x; y ]
-let elor x y = eapp (Expr_var "||") [ x; y ]
-let add x y = eapp (Expr_var "+") [ x; y ]
-let mul x y = eapp (Expr_var "*") [ x; y ]
-let div x y = eapp (Expr_var "/") [ x; y ]
-let sub x y = eapp (Expr_var "-") [ x; y ]
-let eqq x y = eapp (Expr_var "=") [ x; y ]
-let ge x y = eapp (Expr_var ">") [ x; y ]
-let le x y = eapp (Expr_var "<") [ x; y ]
-let geq x y = eapp (Expr_var ">=") [ x; y ]
-let leq x y = eapp (Expr_var "<=") [ x; y ]
+let eite c e t = Expr_ite(c, e, t)
+let elet ?(rec_flag = NonRecursive) pattern binding where =
+     Expr_let(rec_flag, [pattern, binding], where)
+let add x y = eapp (Expr_var "+") [x; y]
+let mul x y = eapp (Expr_var "*") [x; y]
+let sub x y = eapp (Expr_var "-") [x; y]
+let eqq x y = eapp (Expr_var "=") [x; y]
+let ge x y = eapp (Expr_var ">") [x; y]
+let le x y = eapp (Expr_var "<") [x; y]
+let geq x y = eapp (Expr_var ">=") [x; y]
+let leq x y = eapp (Expr_var "<=") [x; y]
