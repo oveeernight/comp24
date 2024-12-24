@@ -1,31 +1,30 @@
-(** Copyright 2024-2025, KreML Compiler Commutnity *)
-
-(** SPDX-License-Identifier: LGPL-3.0-or-later *)
-
+open Kreml_lib.Parser
 open Kreml_lib.Inferencer
+open Kreml_lib.Ast
 
-let parse_program input =
-  let open Stdlib.Format in
-  match Kreml_lib.Parser.run input with
-  | Ok structure ->
-    (match Kreml_lib.Inferencer.run structure with
-     | Result.Ok env -> TypeEnv.pp std_formatter env
-     | Error e -> pp_error std_formatter e)
-  | Error msg -> pp_print_string std_formatter msg
-;;
+  
+let parse_expr input =
+  let w e = Result.map snd (R.run (infer_expr TypeEnv.empty  e)) in
+  match Angstrom.parse_string ~consume:Angstrom.Consume.All expr input with
+  | Ok rest ->
+    let r = w rest in
+    let asd = 
+    match r with
+    | Result.Ok s -> 
+      (* let fmt = Stdlib.Format.std_formatter in *)
+      print_endline (show_typ s )
+      (* Subst.pp fmt s; *)
+    | Error e -> pp_error (Stdlib.Format.std_formatter) e
+    in asd
+  | Error _ -> print_endline "3228"
 
-let%expect_test "" =
-  let poly =
-    "let f =\n\
-    \    let rec helper a b = a, b in\n\
-    \    let temp = helper 5 6 in\n\
-    \    let temp2 = helper true false in\n\
-    \    helper\n"
-  in
-  parse_program poly;
-  [%expect
-    {|
-    [ f -> [ 13; 14; ]13 -> 14 -> 13 * 14
-    , print_int -> [ ]int -> unit
-     ] |}]
-;;
+let%expect_test "simple fun" =
+  let examples = ["let rec fact n = if n < 1 then 1 else n * fact (n - 1) in fact 8"] in
+  List.iter (fun e -> parse_expr e) examples;
+  [%expect {| Ast.Typ_int |}]  
+
+
+let%expect_test "simple fun" =
+  let examples = ["let f a = 5 + a in f 6"] in
+  List.iter (fun e -> parse_expr e) examples;
+  [%expect {| Ast.Typ_int |}]
